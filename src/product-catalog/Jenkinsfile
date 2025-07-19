@@ -1,6 +1,10 @@
 pipeline {
     agent any
 
+    tools {
+        go 'Go 1.22.12' // This must be configured in Jenkins global tool config
+    }
+
     environment {
         DOCKER_IMAGE = "${DOCKER_USERNAME}/product-catalog:${env.BUILD_ID}"
     }
@@ -13,12 +17,6 @@ pipeline {
         stage('Checkout') {
             steps {
                 checkout scm
-            }
-        }
-
-        stage('Setup Go') {
-            tools {
-                go 'Go 1.22.12' // This must be configured in Jenkins global tool config
             }
         }
 
