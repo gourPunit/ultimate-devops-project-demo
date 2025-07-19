@@ -37,6 +37,14 @@ pipeline {
             }
         }
 
+        stage('Show Branch Info') {
+            steps {
+                echo "Current Git Branch: ${env.GIT_BRANCH}"
+                echo "Change Branch: ${env.CHANGE_BRANCH}"
+            }
+        }
+
+
         // stage('Code Quality - Lint') {
         //     steps {
         //         dir('src/product-catalog') {
