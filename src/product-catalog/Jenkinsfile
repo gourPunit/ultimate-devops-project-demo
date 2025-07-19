@@ -51,46 +51,46 @@ pipeline {
         }
 
 
-        // stage('Docker Build & Push') {
-        //     when {
-        //         expression {
-        //             return env.GIT_BRANCH ==~ /.*main/
-        //         }
-        //     }
-        //     steps {
-        //         dir('src/product-catalog') {
-        //             withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
-        //                 sh '''
-        //                     echo "$DOCKER_PASS" | /usr/local/bin/docker login -u "$DOCKER_USER" --password-stdin
-        //                     /usr/local/bin/docker build -t $DOCKER_IMAGE .
-        //                     /usr/local/bin/docker push $DOCKER_IMAGE
-        //                 '''
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Docker Build & Push') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                dir('src/product-catalog') {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo "$DOCKER_PASS" | /usr/local/bin/docker login -u "$DOCKER_USER" --password-stdin
+                            /usr/local/bin/docker build -t $DOCKER_IMAGE .
+                            /usr/local/bin/docker push $DOCKER_IMAGE
+                        '''
+                    }
+                }
+            }
+        }
 
-        // stage('Update K8s Manifest') {
-        //     when {
-        //         expression {
-        //             return env.GIT_BRANCH ==~ /.*main/
-        //         }
-        //     }
-        //     steps {
-        //         dir('kubernetes/productcatalog') {
-        //             script {
-        //                 sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deploy.yaml"
-        //                 sh '''
-        //                     git config --global user.email "punit.g237@gmail.com"
-        //                     git config --global user.name "Punit Gour"
-        //                     git add deploy.yaml
-        //                     git commit -m "[CI]: Update product catalog image tag"
-        //                     git push origin HEAD:main -f
-        //                 '''
-        //             }
-        //         }
-        //     }
-        // }
+        stage('Update K8s Manifest') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                dir('kubernetes/productcatalog') {
+                    script {
+                        sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deploy.yaml"
+                        sh '''
+                            git config --global user.email "punit.g237@gmail.com"
+                            git config --global user.name "Punit Gour"
+                            git add deploy.yaml
+                            git commit -m "[CI]: Update product catalog image tag"
+                            git push origin HEAD:main -f
+                        '''
+                    }
+                }
+            }
+        }
     }
 
     post {
