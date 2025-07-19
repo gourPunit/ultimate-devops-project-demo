@@ -1,0 +1,106 @@
+pipeline {
+    agent any
+
+    tools {
+        go 'Go 1.22.12' // This must be configured in Jenkins global tool config
+    }
+
+    environment {
+        DOCKER_IMAGE = "${DOCKER_USERNAME}/product-catalog:${env.BUILD_ID}"
+    }
+
+    options {
+        skipStagesAfterUnstable()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build') {
+            steps {
+                dir('src/product-catalog') {
+                    sh 'go mod download'
+                    sh 'go build -o product-catalog-service main.go'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('src/product-catalog') {
+                    sh 'go test ./...'
+                }
+            }
+        }
+
+        stage('Show Branch Info') {
+            steps {
+                echo "Current Git Branch: ${env.GIT_BRANCH}"
+                echo "Change Branch: ${env.CHANGE_BRANCH}"
+            }
+        }
+
+
+        // stage('Code Quality - Lint') {
+        //     steps {
+        //         dir('src/product-catalog') {
+        //             sh 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2'
+        //             sh './bin/golangci-lint run'
+        //         }
+        //     }
+        // }
+
+        stage('Docker Build & Push') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                script {
+                    docker.withRegistry('', 'docker-hub-creds') {
+                        dir('src/product-catalog') {
+                            def image = docker.build("${DOCKER_IMAGE}")
+                            image.push()
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Update K8s Manifest') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                dir('kubernetes/productcatalog') {
+                    script {
+                        sh "sed -i 's|image: .*|image: ${DOCKER_IMAGE}|' deploy.yaml"
+                        sh '''
+                            git config --global user.email "punit.g237@gmail.com"
+                            git config --global user.name "Punit Gour"
+                            git add deploy.yaml
+                            git commit -m "[CI]: Update product catalog image tag"
+                            git push origin HEAD:main -f
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+    post {
+        failure {
+            echo 'Build failed. Check logs.'
+        }
+        success {
+            echo 'CI pipeline completed successfully.'
+        }
+    }
+}
