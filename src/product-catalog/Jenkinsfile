@@ -9,10 +9,6 @@ pipeline {
         skipStagesAfterUnstable()
     }
 
-    triggers {
-        // GitHub Webhook triggers this pipeline on PR creation/update
-    }
-
     stages {
         stage('Checkout') {
             steps {
@@ -22,7 +18,7 @@ pipeline {
 
         stage('Setup Go') {
             tools {
-                go 'Go 1.22' // This must be configured in Jenkins global tool config
+                go 'Go 1.22.12' // This must be configured in Jenkins global tool config
             }
         }
 
