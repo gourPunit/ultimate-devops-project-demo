@@ -56,7 +56,7 @@ pipeline {
 
         stage('Docker Build & Push') {
             when {
-                branch 'main'
+                branch 'origin/main'
             }
             steps {
                 script {
@@ -72,7 +72,7 @@ pipeline {
 
         stage('Update K8s Manifest') {
             when {
-                branch 'main'
+                branch 'origin/main'
             }
             steps {
                 dir('kubernetes/productcatalog') {
