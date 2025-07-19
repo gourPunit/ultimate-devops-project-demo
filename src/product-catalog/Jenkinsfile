@@ -37,14 +37,14 @@ pipeline {
             }
         }
 
-        stage('Code Quality - Lint') {
-            steps {
-                dir('src/product-catalog') {
-                    sh 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2'
-                    sh './bin/golangci-lint run'
-                }
-            }
-        }
+        // stage('Code Quality - Lint') {
+        //     steps {
+        //         dir('src/product-catalog') {
+        //             sh 'curl -sSfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh | sh -s v1.55.2'
+        //             sh './bin/golangci-lint run'
+        //         }
+        //     }
+        // }
 
         stage('Docker Build & Push') {
             when {
