@@ -1,0 +1,90 @@
+pipeline {
+    agent any
+
+    tools {
+        nodejs 'Nodejs' // This must be configured in Jenkins global tool config
+    }
+
+    environment {
+        DOCKER_IMAGE = "${DOCKER_USERNAME}/payment:${env.BUILD_ID}"
+    }
+
+    options {
+        skipStagesAfterUnstable()
+    }
+
+    stages {
+
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('install dependencies') {
+            steps {
+                dir('src/payment') {
+                    sh 'npm install'
+                }
+            }
+        }
+
+        stage('build') {
+            steps {
+                dir('src/payment') {
+                    sh 'npm run build'
+                }
+            }
+        }
+
+        stage('Unit Tests') {
+            steps {
+                dir('src/payment') {
+                    sh 'npm test'
+                }
+            }
+        }
+
+        stage('Docker Build & Push') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                dir('src/payment') {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub-creds', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                        sh '''
+                            echo "$DOCKER_PASS" | /usr/local/bin/docker login -u "$DOCKER_USER" --password-stdin
+                            /usr/local/bin/docker build -t $DOCKER_IMAGE .
+                            /usr/local/bin/docker push $DOCKER_IMAGE
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Update K8s Manifest') {
+            when {
+                expression {
+                    return env.GIT_BRANCH ==~ /.*main/
+                }
+            }
+            steps {
+                dir('kubernetes/payment') {
+                    script {
+                        sh "sed -i '' 's|image: .*|image: ${DOCKER_IMAGE}|' deploy.yaml"
+                        sh '''
+                            git config --global user.email "punit.g237@gmail.com"
+                            git config --global user.name "Punit Gour"
+                            git add deploy.yaml
+                            git commit -m "[CI]: Update product catalog image tag"
+                            git push origin HEAD:main -f
+                        '''
+                    }
+                }
+            }
+        }
+    }
+
+}
