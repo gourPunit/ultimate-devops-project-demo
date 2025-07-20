@@ -32,7 +32,7 @@ pipeline {
         stage('build') {
             steps {
                 dir('src/payment') {
-                    sh 'cp ./pb/demo.proto ./src/payment/demo.proto'
+                    sh 'cp ../../pb/demo.proto ./'
                     sh 'npm ci --omit=dev'
                 }
             }
